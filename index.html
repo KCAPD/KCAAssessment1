@@ -1,5 +1,95 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="King's Cross Academy Curriculum Assessment Portal"><title>KCA Curriculum Assessment</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="style.css"></head><body>
-<header class="topbar"><button class="brand" id="homeBtn" aria-label="Return to year groups"><span class="brand-mark">KCA</span><span><strong>Curriculum Assessment</strong><small>King's Cross Academy</small></span></button><button class="teacher-link" id="teacherBtn">Teacher Dashboard</button></header>
-<main><section id="yearsView" class="view active"><div class="hero"><span class="eyebrow">KCA Curriculum Assessment</span><h1>Select your year group</h1><p>Choose your year group to find your curriculum assessment.</p></div><div id="yearGrid" class="year-grid"></div></section>
-<section id="assessmentsView" class="view"><button class="back" id="backBtn">← Back to year groups</button><div class="hero compact"><span class="eyebrow" id="yearEyebrow">Curriculum Assessment</span><h1 id="yearTitle">Year 6</h1><p>Select the Big Question you have been learning about.</p></div><div id="assessmentGrid" class="assessment-grid"></div></section>
-<section id="teacherView" class="view"><button class="back" id="teacherBackBtn">← Back to pupil assessments</button><div class="hero compact"><span class="eyebrow">Staff area</span><h1>Teacher Dashboard</h1><p>The live, secure dashboard will be connected in the next stage.</p></div><div class="notice"><strong>Dashboard connection pending</strong><p>This area is deliberately not displaying pupil data yet. It will connect to the secure Google Apps Script endpoint rather than storing sensitive data in GitHub.</p></div></section></main><footer>King's Cross Academy · Love Learning Together</footer><script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="King's Cross Academy Curriculum Assessment Portal">
+  <title>KCA Curriculum Assessment</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <button class="brand" id="homeBtn" aria-label="Return to year groups">
+    <span class="brand-mark">KCA</span>
+    <span><strong>Curriculum Assessment</strong><small>King's Cross Academy</small></span>
+  </button>
+  <button class="teacher-link" id="teacherBtn">Teacher Dashboard</button>
+</header>
+
+<main>
+  <section id="yearsView" class="view active">
+    <div class="hero">
+      <span class="eyebrow">KCA Curriculum Assessment</span>
+      <h1>Select your year group</h1>
+      <p>Choose your year group to find your curriculum assessment.</p>
+    </div>
+    <div id="yearGrid" class="year-grid"></div>
+  </section>
+
+  <section id="assessmentsView" class="view">
+    <button class="back" id="backBtn">← Back to year groups</button>
+    <div class="hero compact">
+      <span class="eyebrow" id="yearEyebrow">Curriculum Assessment</span>
+      <h1 id="yearTitle">Year 6</h1>
+      <p>Select the Big Question you have been learning about.</p>
+    </div>
+    <div id="assessmentGrid" class="assessment-grid"></div>
+  </section>
+
+  <section id="teacherView" class="view">
+    <button class="back" id="teacherBackBtn">← Back to pupil assessments</button>
+    <div class="hero compact teacher-hero">
+      <span class="eyebrow">Staff area · live curriculum picture</span>
+      <h1>Teacher Dashboard</h1>
+      <p>Year-group curriculum security, calculated from the proportion of pupils who are Secure.</p>
+    </div>
+
+    <div class="dashboard-toolbar">
+      <label for="dashboardTerm">Half term</label>
+      <select id="dashboardTerm">
+        <option value="Autumn 1">Autumn 1</option>
+        <option value="Autumn 2">Autumn 2</option>
+        <option value="Spring 1">Spring 1</option>
+        <option value="Spring 2">Spring 2</option>
+        <option value="Summer 1">Summer 1</option>
+        <option value="Summer 2">Summer 2</option>
+      </select>
+      <button id="refreshDashboard" class="refresh-btn">Refresh live data</button>
+      <span id="dashboardStatus" class="dashboard-status" aria-live="polite">Loading…</span>
+    </div>
+
+    <div class="rag-key dashboard-key" aria-label="Dashboard RAG thresholds">
+      <span><i class="dot expected"></i><b>Expected</b> 80%+ Secure</span>
+      <span><i class="dot developing"></i><b>Developing</b> 60–79% Secure</span>
+      <span><i class="dot priority"></i><b>Priority</b> 59% or below Secure</span>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="table-wrap">
+        <table class="dashboard-table">
+          <thead>
+            <tr>
+              <th scope="col">Curriculum area</th>
+              <th scope="col">Y1</th>
+              <th scope="col">Y2</th>
+              <th scope="col">Y3</th>
+              <th scope="col">Y4</th>
+              <th scope="col">Y5</th>
+              <th scope="col">Y6</th>
+            </tr>
+          </thead>
+          <tbody id="dashboardBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="privacy-note">This dashboard receives aggregated year-group data only. No pupil names or pupil IDs are sent to the website.</p>
+  </section>
+</main>
+<footer>King's Cross Academy · Love Learning Together</footer>
+<script src="app.js"></script>
+</body>
+</html>
