@@ -86,6 +86,7 @@ const assessmentGrid = document.getElementById("assessmentGrid");
 const dashboardBody = document.getElementById("dashboardBody");
 const dashboardTerm = document.getElementById("dashboardTerm");
 const dashboardStatus = document.getElementById("dashboardStatus");
+const completionGrid = document.getElementById("completionGrid");
 const loginForm = document.getElementById("loginForm");
 const loginPassword = document.getElementById("loginPassword");
 const loginMessage = document.getElementById("loginMessage");
@@ -271,7 +272,121 @@ function collectSubjects(lookup) {
   return ordered.length ? ordered : SUBJECT_ORDER;
 }
 
+function buildCompletionLookup(term) {
+  const wantedCode = TERM_CODES[term];
+  const lookup = {};
+  if (!dashboardData || !dashboardData.completion) return lookup;
+
+  Object.entries(dashboardData.completion).forEach(([assessmentId, completion]) => {
+    const parsed = parseAssessmentId(assessmentId);
+    if (!parsed || parsed.termCode !== wantedCode) return;
+    lookup[parsed.year] = { assessmentId, ...completion };
+  });
+  return lookup;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function renderCompletion() {
+  const lookup = buildCompletionLookup(dashboardTerm.value);
+
+  completionGrid.innerHTML = ["1", "2", "3", "4", "5", "6"].map(year => {
+    const item = lookup[year];
+    if (!item) {
+      return `<article class="completion-card no-completion"><div class="completion-card-top"><b>Year ${year}</b><span>Not set up</span></div><p>No assessment data yet.</p></article>`;
+    }
+
+    const pct = Number(item.percentage || 0);
+    const classes = Object.entries(item.classes || {});
+    const completedPupils = classes.flatMap(([className, data]) =>
+      (data.pupils || []).filter(p => p.completed).map(p => ({...p, className}))
+    );
+    const missingPupils = classes.flatMap(([className, data]) =>
+      (data.pupils || []).filter(p => !p.completed).map(p => ({...p, className}))
+    );
+
+    const classOptions = classes.map(([className]) => `<option value="${escapeHtml(className)}">${escapeHtml(className)}</option>`).join("");
+    const done = completedPupils.length ? completedPupils.map(p => `<span class="initial-chip done" title="${escapeHtml(p.className)}">${escapeHtml(p.initials)} ✓</span>`).join("") : `<span class="empty-list">None yet</span>`;
+    const missing = missingPupils.length ? missingPupils.map(p => `<span class="initial-chip missing" title="${escapeHtml(p.className)}">${escapeHtml(p.initials)}</span>`).join("") : `<span class="empty-list">Everyone has completed it ✓</span>`;
+
+    return `<article class="completion-card" data-assessment="${escapeHtml(item.assessmentId)}">
+      <div class="completion-card-top"><b>Year ${year}</b><span>${item.completed}/${item.expected} completed</span></div>
+      <div class="completion-progress" aria-label="${pct}% complete"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></div>
+      <strong class="completion-percent">${pct}%</strong>
+      <details class="completion-details">
+        <summary>View completion</summary>
+        <div class="completion-list"><b>Completed</b><div>${done}</div></div>
+        <div class="completion-list"><b>Not yet completed</b><div>${missing}</div></div>
+      </details>
+      <div class="report-tools">
+        <b>Reports</b>
+        <button class="report-btn" data-scope="year" data-assessment="${escapeHtml(item.assessmentId)}">Generate year-group pack</button>
+        ${classes.length ? `<div class="class-report-row"><select class="class-report-select" aria-label="Choose class">${classOptions}</select><button class="report-btn secondary" data-scope="class" data-assessment="${escapeHtml(item.assessmentId)}">Generate class pack</button></div>` : ""}
+        <div class="report-result" aria-live="polite"></div>
+      </div>
+    </article>`;
+  }).join("");
+
+  completionGrid.querySelectorAll(".report-btn").forEach(button => {
+    button.addEventListener("click", () => generateReport(button));
+  });
+}
+
+async function generateReport(button) {
+  const session = getStoredSession();
+  if (!session) {
+    show(teacherLoginView);
+    return;
+  }
+
+  const card = button.closest(".completion-card");
+  const result = card.querySelector(".report-result");
+  const scope = button.dataset.scope;
+  const assessmentId = button.dataset.assessment;
+  const className = scope === "class" ? card.querySelector(".class-report-select")?.value || "" : "";
+
+  const oldText = button.textContent;
+  button.disabled = true;
+  button.textContent = "Generating…";
+  result.innerHTML = "";
+
+  try {
+    const response = await fetch(CONFIG.apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "generateReport", token: session.token, assessmentId, scope, className }),
+      cache: "no-store"
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const json = await response.json();
+
+    if (!json.authenticated) {
+      clearSession();
+      loginMessage.textContent = "Your staff session has expired. Please sign in again.";
+      show(teacherLoginView);
+      return;
+    }
+    if (!json.success || !json.url) throw new Error(json.error || "Report could not be generated.");
+
+    result.innerHTML = `<a href="${escapeHtml(json.url)}" target="_blank" rel="noopener">✓ Report ready — open printout</a>`;
+  } catch (error) {
+    console.error(error);
+    result.textContent = error.message || "Report could not be generated. Please try again.";
+  } finally {
+    button.disabled = false;
+    button.textContent = oldText;
+  }
+}
+
 function renderDashboard() {
+  renderCompletion();
   const lookup = buildTermLookup(dashboardTerm.value);
   const subjects = collectSubjects(lookup);
 
