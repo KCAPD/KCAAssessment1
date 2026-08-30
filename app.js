@@ -3,7 +3,8 @@ const CONFIG = {
   thresholds: {
     expected: 80,
     developing: 60
-  }
+  },
+  sessionKey: "kca_dashboard_session"
 };
 
 const DATA = {
@@ -77,17 +78,22 @@ const SUBJECT_ORDER = [
 
 const yearsView = document.getElementById("yearsView");
 const assessmentsView = document.getElementById("assessmentsView");
+const teacherLoginView = document.getElementById("teacherLoginView");
 const teacherView = document.getElementById("teacherView");
 const yearGrid = document.getElementById("yearGrid");
 const assessmentGrid = document.getElementById("assessmentGrid");
 const dashboardBody = document.getElementById("dashboardBody");
 const dashboardTerm = document.getElementById("dashboardTerm");
 const dashboardStatus = document.getElementById("dashboardStatus");
+const loginForm = document.getElementById("loginForm");
+const loginPassword = document.getElementById("loginPassword");
+const loginMessage = document.getElementById("loginMessage");
+const loginButton = document.getElementById("loginButton");
 
 let dashboardData = null;
 
 function show(view) {
-  [yearsView, assessmentsView, teacherView].forEach(v => v.classList.remove("active"));
+  [yearsView, assessmentsView, teacherLoginView, teacherView].forEach(v => v.classList.remove("active"));
   view.classList.add("active");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -125,6 +131,98 @@ function openYear(year) {
   }).join("");
 
   show(assessmentsView);
+}
+
+function getStoredSession() {
+  try {
+    const raw = sessionStorage.getItem(CONFIG.sessionKey);
+    if (!raw) return null;
+    const session = JSON.parse(raw);
+    if (!session.token || !session.expiresAt || Date.now() >= session.expiresAt) {
+      sessionStorage.removeItem(CONFIG.sessionKey);
+      return null;
+    }
+    return session;
+  } catch (_) {
+    sessionStorage.removeItem(CONFIG.sessionKey);
+    return null;
+  }
+}
+
+function storeSession(token, expiresInSeconds) {
+  sessionStorage.setItem(CONFIG.sessionKey, JSON.stringify({
+    token,
+    expiresAt: Date.now() + (Number(expiresInSeconds || 28800) * 1000)
+  }));
+}
+
+function clearSession() {
+  sessionStorage.removeItem(CONFIG.sessionKey);
+  dashboardData = null;
+}
+
+async function loginToDashboard(password) {
+  const response = await fetch(CONFIG.apiUrl, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "login", password }),
+    cache: "no-store"
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  loginMessage.textContent = "";
+  const password = loginPassword.value;
+  if (!password) {
+    loginMessage.textContent = "Enter the staff password.";
+    return;
+  }
+
+  loginButton.disabled = true;
+  loginButton.textContent = "Checking…";
+
+  try {
+    const result = await loginToDashboard(password);
+    loginPassword.value = "";
+
+    if (!result.success || !result.authenticated || !result.token) {
+      loginMessage.textContent = "That password wasn't recognised.";
+      return;
+    }
+
+    storeSession(result.token, result.expiresIn);
+    show(teacherView);
+    await loadDashboard();
+  } catch (error) {
+    console.error(error);
+    loginMessage.textContent = "Staff access could not be checked. Please try again.";
+  } finally {
+    loginButton.disabled = false;
+    loginButton.textContent = "Open Teacher Dashboard";
+  }
+}
+
+function openTeacherArea() {
+  const session = getStoredSession();
+  if (session) {
+    show(teacherView);
+    loadDashboard();
+  } else {
+    loginMessage.textContent = "";
+    loginPassword.value = "";
+    show(teacherLoginView);
+    setTimeout(() => loginPassword.focus(), 100);
+  }
+}
+
+function logoutTeacher() {
+  clearSession();
+  dashboardBody.innerHTML = "";
+  dashboardStatus.textContent = "Locked";
+  show(yearsView);
 }
 
 function parseAssessmentId(id) {
@@ -179,12 +277,28 @@ function renderDashboard() {
 }
 
 async function loadDashboard() {
+  const session = getStoredSession();
+  if (!session) {
+    show(teacherLoginView);
+    return;
+  }
+
   dashboardStatus.textContent = "Loading live data…";
   try {
-    const response = await fetch(`${CONFIG.apiUrl}?t=${Date.now()}`, { cache: "no-store" });
+    const url = `${CONFIG.apiUrl}?action=data&token=${encodeURIComponent(session.token)}&t=${Date.now()}`;
+    const response = await fetch(url, { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const json = await response.json();
+
+    if (!json.authenticated) {
+      clearSession();
+      loginMessage.textContent = "Your staff session has expired. Please sign in again.";
+      show(teacherLoginView);
+      return;
+    }
+
     if (!json.success) throw new Error(json.error || "Dashboard API returned an error");
+
     dashboardData = json;
     renderDashboard();
     const generated = json.generated ? new Date(json.generated) : new Date();
@@ -192,15 +306,18 @@ async function loadDashboard() {
   } catch (error) {
     console.error(error);
     dashboardStatus.textContent = "Could not load live data";
-    dashboardBody.innerHTML = `<tr><td colspan="7" class="dashboard-error">The live Google data could not be loaded. Try Refresh live data.</td></tr>`;
+    dashboardBody.innerHTML = `<tr><td colspan="7" class="dashboard-error">The secure Google data could not be loaded. Try Refresh live data.</td></tr>`;
   }
 }
 
 document.getElementById("backBtn").addEventListener("click", () => show(yearsView));
 document.getElementById("homeBtn").addEventListener("click", () => show(yearsView));
-document.getElementById("teacherBtn").addEventListener("click", () => { show(teacherView); loadDashboard(); });
+document.getElementById("teacherBtn").addEventListener("click", openTeacherArea);
+document.getElementById("loginBackBtn").addEventListener("click", () => show(yearsView));
 document.getElementById("teacherBackBtn").addEventListener("click", () => show(yearsView));
+document.getElementById("logoutBtn").addEventListener("click", logoutTeacher);
 document.getElementById("refreshDashboard").addEventListener("click", loadDashboard);
 dashboardTerm.addEventListener("change", renderDashboard);
+loginForm.addEventListener("submit", handleLogin);
 
 renderYears();

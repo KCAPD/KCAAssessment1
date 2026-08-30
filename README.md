@@ -1,19 +1,16 @@
-# KCA Curriculum Assessment Portal v0.10
+# KCA Curriculum Assessment Portal v0.11
 
-## What changed
-- Pupil portal remains Year Group → Big Question assessment.
-- Teacher Dashboard now reads the live Apps Script endpoint.
-- Dashboard displays aggregated year-group × curriculum-area RAG only.
-- No pupil names or pupil IDs are requested or displayed.
-- Half-term selector supports all six assessment windows.
-- Year-group RAG thresholds:
-  - Expected: 80%+ of pupils Secure
-  - Developing: 60–79% Secure
-  - Priority: 59% or below Secure
-- Years/subjects with no results show —.
+## What's new
+- Teacher Dashboard is now behind a KCA Staff Access password screen.
+- The password is **not** stored in GitHub or in the website code.
+- Successful login receives a temporary Google-issued session token.
+- The token is stored only for the current browser tab/session and expires server-side after 8 hours.
+- A Log out button clears the local session immediately.
+- Dashboard data remains aggregated year-group data only; no pupil names or pupil IDs are sent to GitHub.
+- Public pupil portal is unchanged.
 
-## Deployment
-Replace the files in the existing GitHub Pages repository with these files and commit/push. The existing Apps Script `/exec` URL is already configured in `app.js`.
+## Important Google Apps Script requirement
+This website sends the staff password to Apps Script with an HTTP POST request so it does not appear in the URL.
+Your Apps Script deployment therefore needs the matching `doPost(e)` login handler in addition to the secure `doGet(e)` data handler.
 
-## Current pilot
-Year 6 Autumn 1 is the only live pupil assessment. The dashboard will therefore populate Y6 Autumn 1 from the current Google Results data; other year groups/half terms remain blank until data exists.
+Keep using the existing web app deployment URL. When backend code changes, update the existing deployment with **New version** rather than creating a new web app.

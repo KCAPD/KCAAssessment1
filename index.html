@@ -39,8 +39,28 @@
     <div id="assessmentGrid" class="assessment-grid"></div>
   </section>
 
+
+  <section id="teacherLoginView" class="view">
+    <button class="back" id="loginBackBtn">← Back to pupil assessments</button>
+    <div class="login-shell">
+      <div class="login-card">
+        <span class="lock-icon" aria-hidden="true">🔒</span>
+        <span class="eyebrow">KCA Staff Access</span>
+        <h1>Teacher Dashboard</h1>
+        <p>Enter the staff password to view the live curriculum picture.</p>
+        <form id="loginForm" class="login-form">
+          <label for="loginPassword">Staff password</label>
+          <input id="loginPassword" type="password" autocomplete="current-password" required>
+          <button id="loginButton" type="submit">Open Teacher Dashboard</button>
+          <p id="loginMessage" class="login-message" aria-live="polite"></p>
+        </form>
+        <p class="login-privacy">The password is checked securely by Google and is not stored in this website's code.</p>
+      </div>
+    </div>
+  </section>
+
   <section id="teacherView" class="view">
-    <button class="back" id="teacherBackBtn">← Back to pupil assessments</button>
+    <div class="teacher-actions"><button class="back" id="teacherBackBtn">← Back to pupil assessments</button><button class="logout-btn" id="logoutBtn">Log out</button></div>
     <div class="hero compact teacher-hero">
       <span class="eyebrow">Staff area · live curriculum picture</span>
       <h1>Teacher Dashboard</h1>
