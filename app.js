@@ -79,6 +79,7 @@ const SUBJECT_ORDER = [
 const yearsView = document.getElementById("yearsView");
 const assessmentsView = document.getElementById("assessmentsView");
 const teacherLoginView = document.getElementById("teacherLoginView");
+const mtcView = document.getElementById("mtcView");
 const teacherView = document.getElementById("teacherView");
 const yearGrid = document.getElementById("yearGrid");
 const assessmentGrid = document.getElementById("assessmentGrid");
@@ -93,7 +94,7 @@ const loginButton = document.getElementById("loginButton");
 let dashboardData = null;
 
 function show(view) {
-  [yearsView, assessmentsView, teacherLoginView, teacherView].forEach(v => v.classList.remove("active"));
+  [yearsView, assessmentsView, mtcView, teacherLoginView, teacherView].forEach(v => v.classList.remove("active"));
   view.classList.add("active");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -115,7 +116,15 @@ function openYear(year) {
   document.getElementById("yearTitle").textContent = `Year ${year}`;
   document.getElementById("yearEyebrow").textContent = `Year ${year} · 2026–2027`;
 
-  assessmentGrid.innerHTML = DATA.yearGroups[year].map(([term, question]) => {
+  const mtcCard = year === "4" ? `
+    <article class="assessment-card mtc-card">
+      <span class="term">Weekly practice</span>
+      <h2>Multiplication Tables Check Practice</h2>
+      <span class="status live">Prototype ready</span>
+      <button class="start mtc-launch" id="launchMtc">Start MTC practice →</button>
+    </article>` : "";
+
+  assessmentGrid.innerHTML = mtcCard + DATA.yearGroups[year].map(([term, question]) => {
     const key = `${year}-${term}`;
     const url = DATA.forms[key];
     return `
@@ -130,6 +139,8 @@ function openYear(year) {
       </article>`;
   }).join("");
 
+  const launchMtc = document.getElementById("launchMtc");
+  if (launchMtc) launchMtc.addEventListener("click", openMtc);
   show(assessmentsView);
 }
 
@@ -309,6 +320,137 @@ async function loadDashboard() {
     dashboardBody.innerHTML = `<tr><td colspan="7" class="dashboard-error">The secure Google data could not be loaded. Try Refresh live data.</td></tr>`;
   }
 }
+
+
+// -------------------------
+// MTC PRACTICE · PHASE 1
+// Pupil experience only. No data is saved.
+// -------------------------
+const MTC = {
+  pupil: "",
+  stage: "practice",
+  index: 0,
+  questions: [],
+  answers: [],
+  timer: null,
+  locked: false,
+  practice: [{a:2,b:4},{a:5,b:3},{a:10,b:6}]
+};
+
+const mtcScreens = [...document.querySelectorAll(".mtc-screen")];
+const mtcPupil = document.getElementById("mtcPupil");
+const mtcAnswer = document.getElementById("mtcAnswer");
+const mtcFact = document.getElementById("mtcFact");
+const mtcStageLabel = document.getElementById("mtcStageLabel");
+const mtcQuestionCount = document.getElementById("mtcQuestionCount");
+const mtcTimerBar = document.getElementById("mtcTimerBar");
+
+function mtcShow(id) {
+  mtcScreens.forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function openMtc() {
+  clearTimeout(MTC.timer);
+  MTC.pupil = "";
+  MTC.answers = [];
+  mtcPupil.value = "";
+  mtcShow("mtcSelect");
+  show(mtcView);
+}
+
+function shuffle(arr) {
+  for (let i=arr.length-1;i>0;i--) {
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function makeMtcQuestions() {
+  // Uses the published MTC table-representation limits: strong emphasis on 6,7,8,9,12.
+  // This is a practice generator, not an official DfE form.
+  const tableCounts = {2:1,3:2,4:2,5:1,6:3,7:3,8:3,9:3,10:1,11:2,12:4}; // total 25
+  const questions=[];
+  Object.entries(tableCounts).forEach(([a,count]) => {
+    const multipliers=shuffle([2,3,4,5,6,7,8,9,10,11,12].slice());
+    for(let i=0;i<count;i++) questions.push({a:Number(a),b:multipliers[i]});
+  });
+  return shuffle(questions);
+}
+
+function startMtcStage(stage) {
+  MTC.stage = stage;
+  MTC.index = 0;
+  MTC.questions = stage === "practice" ? MTC.practice.slice() : makeMtcQuestions();
+  showMtcQuestion();
+}
+
+function showMtcQuestion() {
+  MTC.locked = false;
+  const q=MTC.questions[MTC.index];
+  mtcStageLabel.textContent = MTC.stage === "practice" ? "Practice" : "Check";
+  mtcQuestionCount.textContent = `Question ${MTC.index+1} of ${MTC.questions.length}`;
+  mtcFact.textContent = `${q.a} × ${q.b} =`;
+  mtcAnswer.value="";
+  mtcShow("mtcQuestion");
+  mtcAnswer.focus();
+  mtcTimerBar.style.transition="none";
+  mtcTimerBar.style.width="100%";
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    mtcTimerBar.style.transition="width 6s linear";
+    mtcTimerBar.style.width="0%";
+  }));
+  clearTimeout(MTC.timer);
+  MTC.timer=setTimeout(()=>submitMtcAnswer(false),6000);
+}
+
+function submitMtcAnswer(early=true) {
+  if (MTC.locked) return;
+  MTC.locked=true;
+  clearTimeout(MTC.timer);
+  const q=MTC.questions[MTC.index];
+  const raw=mtcAnswer.value.trim();
+  MTC.answers.push({stage:MTC.stage,a:q.a,b:q.b,answer:raw,correct:Number(raw)===q.a*q.b});
+  mtcShow("mtcPause");
+  setTimeout(()=>{
+    MTC.index++;
+    if(MTC.index < MTC.questions.length) showMtcQuestion();
+    else if(MTC.stage === "practice") mtcShow("mtcPracticeDone");
+    else mtcShow("mtcFinished");
+  },3000);
+}
+
+function addDigit(d) {
+  if (MTC.locked) return;
+  if (mtcAnswer.value.length < 3) mtcAnswer.value += d;
+  mtcAnswer.focus();
+}
+
+const keypad=document.getElementById("mtcKeypad");
+keypad.innerHTML=[1,2,3,4,5,6,7,8,9,"⌫",0].map(v =>
+  `<button type="button" data-key="${v}" aria-label="${v==='⌫'?'Delete':v}">${v}</button>`
+).join("");
+keypad.addEventListener("click",e=>{
+  const key=e.target.dataset.key;
+  if(key===undefined) return;
+  if(key==="⌫") mtcAnswer.value=mtcAnswer.value.slice(0,-1); else addDigit(key);
+});
+mtcAnswer.addEventListener("input",()=>{mtcAnswer.value=mtcAnswer.value.replace(/\D/g,"").slice(0,3)});
+mtcAnswer.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();submitMtcAnswer(true)}});
+document.getElementById("mtcEnter").addEventListener("click",()=>submitMtcAnswer(true));
+document.getElementById("mtcContinue").addEventListener("click",()=>{
+  if(!mtcPupil.value){mtcPupil.focus();return;}
+  MTC.pupil=mtcPupil.value;
+  document.getElementById("mtcPupilName").textContent=MTC.pupil;
+  mtcShow("mtcWelcome");
+});
+document.getElementById("mtcStartPractice").addEventListener("click",()=>startMtcStage("practice"));
+document.getElementById("mtcStartCheck").addEventListener("click",()=>startMtcStage("check"));
+document.getElementById("mtcExit1").addEventListener("click",()=>show(assessmentsView));
+document.getElementById("mtcExit2").addEventListener("click",()=>mtcShow("mtcSelect"));
+document.getElementById("mtcFinishExit").addEventListener("click",()=>show(assessmentsView));
+
 
 document.getElementById("backBtn").addEventListener("click", () => show(yearsView));
 document.getElementById("homeBtn").addEventListener("click", () => show(yearsView));

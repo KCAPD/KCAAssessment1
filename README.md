@@ -1,16 +1,16 @@
-# KCA Curriculum Assessment Portal v0.11
+# KCA Assessment Portal v0.12 — MTC Phase 1
 
-## What's new
-- Teacher Dashboard is now behind a KCA Staff Access password screen.
-- The password is **not** stored in GitHub or in the website code.
-- Successful login receives a temporary Google-issued session token.
-- The token is stored only for the current browser tab/session and expires server-side after 8 hours.
-- A Log out button clears the local session immediately.
-- Dashboard data remains aggregated year-group data only; no pupil names or pupil IDs are sent to GitHub.
-- Public pupil portal is unchanged.
+Adds a pupil-facing Year 4 MTC Practice prototype to the existing secure assessment portal.
 
-## Important Google Apps Script requirement
-This website sends the staff password to Apps Script with an HTTP POST request so it does not appear in the URL.
-Your Apps Script deployment therefore needs the matching `doPost(e)` login handler in addition to the secure `doGet(e)` data handler.
+## Phase 1 behaviour
+- Year 4 includes a Weekly MTC Practice card.
+- Prototype pupil-name selector (sample names only).
+- 3 practice questions.
+- 25-question timed check.
+- 6 seconds per question and 3-second pause.
+- Enter submits early; answers lock after submission/time expiry.
+- Responsive keyboard/touch number entry.
+- No results are saved or displayed yet.
 
-Keep using the existing web app deployment URL. When backend code changes, update the existing deployment with **New version** rather than creating a new web app.
+## Important
+This is KCA practice software, not the official Department for Education MTC service. Phase 2 will load real Year 4 pupils from Google and securely save weekly attempts.

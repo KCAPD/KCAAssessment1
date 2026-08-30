@@ -40,6 +40,65 @@
   </section>
 
 
+  <section id="mtcView" class="view mtc-view">
+    <div id="mtcApp" class="mtc-app">
+      <div id="mtcSelect" class="mtc-screen active">
+        <span class="mtc-kicker">Year 4 · KCA MTC Practice</span>
+        <h1>Select your name</h1>
+        <p class="mtc-lead">This prototype uses sample names. The live version will load the Year 4 pupil list securely from Google.</p>
+        <label class="mtc-label" for="mtcPupil">Your name</label>
+        <select id="mtcPupil" class="mtc-select">
+          <option value="">Choose your name…</option>
+          <option>Alex Morgan</option><option>Casey Patel</option><option>Jordan Smith</option><option>Sam Taylor</option>
+        </select>
+        <button id="mtcContinue" class="mtc-primary">Continue</button>
+        <button id="mtcExit1" class="mtc-text-btn">← Back to Year 4 assessments</button>
+      </div>
+
+      <div id="mtcWelcome" class="mtc-screen">
+        <span class="mtc-kicker">KCA MTC Practice</span>
+        <h1>Welcome, <span id="mtcPupilName"></span></h1>
+        <div class="mtc-instructions">
+          <p>You will answer <strong>3 practice questions</strong> first.</p>
+          <p>Then you will answer <strong>25 times tables questions</strong>.</p>
+          <p>You have <strong>6 seconds</strong> for each question, followed by a <strong>3-second pause</strong>.</p>
+          <p>You can press <strong>Enter</strong> to submit an answer early. Once submitted, you cannot go back.</p>
+        </div>
+        <button id="mtcStartPractice" class="mtc-primary">Start practice</button>
+        <button id="mtcExit2" class="mtc-text-btn">← Choose a different name</button>
+      </div>
+
+      <div id="mtcQuestion" class="mtc-screen mtc-question-screen">
+        <div class="mtc-progress-row"><span id="mtcStageLabel">Practice</span><span id="mtcQuestionCount">Question 1 of 3</span></div>
+        <div class="mtc-timer" aria-hidden="true"><div id="mtcTimerBar"></div></div>
+        <div id="mtcFact" class="mtc-fact">7 × 8 =</div>
+        <input id="mtcAnswer" class="mtc-answer" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-label="Answer">
+        <div class="mtc-keypad" id="mtcKeypad"></div>
+        <button id="mtcEnter" class="mtc-enter">Enter</button>
+      </div>
+
+      <div id="mtcPause" class="mtc-screen mtc-pause-screen">
+        <div class="mtc-pause-dot"></div>
+        <p>Get ready for the next question</p>
+      </div>
+
+      <div id="mtcPracticeDone" class="mtc-screen">
+        <span class="mtc-kicker">Practice complete</span>
+        <h1>You're ready.</h1>
+        <p class="mtc-lead">The check has 25 questions. Once you start, it will continue until the end.</p>
+        <button id="mtcStartCheck" class="mtc-primary">Start check</button>
+      </div>
+
+      <div id="mtcFinished" class="mtc-screen">
+        <span class="mtc-kicker">KCA MTC Practice</span>
+        <h1>Thank you</h1>
+        <p class="mtc-lead">You have finished the check.</p>
+        <div class="mtc-prototype-note">Prototype only — Phase 1 does not save or show a score yet.</div>
+        <button id="mtcFinishExit" class="mtc-primary">Return to assessments</button>
+      </div>
+    </div>
+  </section>
+
   <section id="teacherLoginView" class="view">
     <button class="back" id="loginBackBtn">← Back to pupil assessments</button>
     <div class="login-shell">
