@@ -1,18 +1,5 @@
-# KCA Curriculum Assessment GitHub Site v0.8
+# KCA Curriculum Assessment Portal v0.9
 
-Includes Welcome, Pupils, and Teachers views.
+Pupil-first scalable front end. Opens directly to Year 1–6; each year contains six half-term assessment slots with Big Question titles. Only Year 6 Autumn 1 is live. Teacher Dashboard is a discreet top-right staff link. No pupil data or credentials are stored in GitHub.
 
-## Before publishing
-Open `app.js` and paste the live Year 6 Autumn 1 Google Form URL into:
-
-```js
-year6FormUrl: ""
-```
-
-## GitHub Pages
-Create a repository, upload `index.html`, `style.css`, and `app.js`, commit them, then enable Pages from the main branch/root.
-
-## Security
-Do not put pupil data, private Google Sheet URLs, credentials, or secrets in GitHub.
-
-The teacher dashboard currently uses prototype data only. The next step is to connect it to a secure Apps Script read-only endpoint.
+Next stage: connect the Teacher Dashboard to a secure, read-only Google Apps Script endpoint with server-side staff permissions.
