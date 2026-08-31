@@ -14,3 +14,6 @@ Adds a pupil-facing Year 4 MTC Practice prototype to the existing secure assessm
 
 ## Important
 This is KCA practice software, not the official Department for Education MTC service. Phase 2 will load real Year 4 pupils from Google and securely save weekly attempts.
+
+
+v0.14c: SLT PIN front-end cache fix. Uses a versioned JavaScript filename so GitHub Pages/browser cannot keep serving the previous app.js.
