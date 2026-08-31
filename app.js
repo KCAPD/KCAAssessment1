@@ -86,6 +86,10 @@ const dashboardTerm = document.getElementById("dashboardTerm");
 const dashboardStatus = document.getElementById("dashboardStatus");
 const completionGrid = document.getElementById("completionGrid");
 const assessmentManagementGrid = document.getElementById("assessmentManagementGrid");
+const sltPinInput = document.getElementById("sltPinInput");
+const sltUnlockBtn = document.getElementById("sltUnlockBtn");
+const sltLockBtn = document.getElementById("sltLockBtn");
+const sltUnlockStatus = document.getElementById("sltUnlockStatus");
 const loginForm = document.getElementById("loginForm");
 const loginPassword = document.getElementById("loginPassword");
 const loginMessage = document.getElementById("loginMessage");
@@ -93,6 +97,8 @@ const loginButton = document.getElementById("loginButton");
 
 let dashboardData = null;
 let publicAssessmentStatus = [];
+let sltPin = "";
+let sltControlsUnlocked = false;
 
 function show(view) {
   [yearsView, assessmentsView, mtcView, teacherLoginView, teacherView].forEach(v => v.classList.remove("active"));
@@ -190,6 +196,7 @@ function storeSession(token, expiresInSeconds) {
 function clearSession() {
   sessionStorage.removeItem(CONFIG.sessionKey);
   dashboardData = null;
+  lockSltControls();
 }
 
 async function loginToDashboard(password) {
@@ -346,8 +353,43 @@ function renderCompletion() {
   });
 }
 
+function updateSltUnlockUi() {
+  if (!sltPinInput || !sltUnlockBtn || !sltLockBtn || !sltUnlockStatus) return;
+  sltPinInput.disabled = sltControlsUnlocked;
+  sltUnlockBtn.hidden = sltControlsUnlocked;
+  sltLockBtn.hidden = !sltControlsUnlocked;
+  sltUnlockStatus.textContent = sltControlsUnlocked
+    ? "Controls unlocked for this dashboard session."
+    : "Enter the SLT PIN to enable assessment controls.";
+}
+
+function unlockSltControls() {
+  const entered = String(sltPinInput?.value || "").trim();
+  if (!entered) {
+    if (sltUnlockStatus) sltUnlockStatus.textContent = "Enter the SLT PIN first.";
+    sltPinInput?.focus();
+    return;
+  }
+  // The PIN is deliberately kept only in this page's memory. Google performs
+  // the real security check when an ON/OFF change is requested.
+  sltPin = entered;
+  sltControlsUnlocked = true;
+  updateSltUnlockUi();
+  renderAssessmentManagement();
+}
+
+function lockSltControls(message = "") {
+  sltPin = "";
+  sltControlsUnlocked = false;
+  if (sltPinInput) sltPinInput.value = "";
+  updateSltUnlockUi();
+  if (message && sltUnlockStatus) sltUnlockStatus.textContent = message;
+  if (dashboardData) renderAssessmentManagement();
+}
+
 function renderAssessmentManagement() {
   if (!assessmentManagementGrid) return;
+  updateSltUnlockUi();
   const items = Array.isArray(dashboardData?.assessmentManagement) ? dashboardData.assessmentManagement : [];
   const term = dashboardTerm.value;
   const wantedCode = TERM_CODES[term];
@@ -361,11 +403,16 @@ function renderAssessmentManagement() {
 
     const live = Boolean(item.live);
     const canOpen = Boolean(item.hasForm);
-    const disabled = !live && !canOpen;
+    const noForm = !live && !canOpen;
+    const disabled = noForm || !sltControlsUnlocked;
+    const buttonText = noForm
+      ? "Google Form not set up"
+      : (!sltControlsUnlocked ? "Unlock SLT controls above" : (live ? "Turn assessment off" : "Turn assessment on"));
+
     return `<article class="management-card ${live ? "is-live" : "is-off"}" data-assessment="${escapeHtml(item.assessmentId)}">
       <div class="management-card-top"><b>Year ${year}</b><span class="management-status ${live ? "live" : "off"}">${live ? "On" : "Off"}</span></div>
       <p>${escapeHtml(item.period || term)}</p>
-      <button class="management-toggle" data-live="${live ? "true" : "false"}" ${disabled ? "disabled" : ""}>${disabled ? "Google Form not set up" : (live ? "Turn assessment off" : "Turn assessment on")}</button>
+      <button class="management-toggle" data-live="${live ? "true" : "false"}" ${disabled ? "disabled" : ""}>${buttonText}</button>
       <div class="management-result" aria-live="polite"></div>
     </article>`;
   }).join("");
@@ -376,6 +423,11 @@ function renderAssessmentManagement() {
 async function toggleAssessmentLive(button) {
   const session = getStoredSession();
   if (!session) { show(teacherLoginView); return; }
+  if (!sltControlsUnlocked || !sltPin) {
+    if (sltUnlockStatus) sltUnlockStatus.textContent = "Enter the SLT PIN to enable assessment controls.";
+    sltPinInput?.focus();
+    return;
+  }
 
   const card = button.closest(".management-card");
   const assessmentId = card?.dataset.assessment || "";
@@ -388,12 +440,19 @@ async function toggleAssessmentLive(button) {
     const response = await fetch(CONFIG.apiUrl, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "setAssessmentLive", token: session.token, assessmentId, live: !currentlyLive }),
+      body: JSON.stringify({ action: "setAssessmentLive", token: session.token, sltPin, assessmentId, live: !currentlyLive }),
       cache: "no-store"
     });
     const json = await response.json();
     if (!json.authenticated) { clearSession(); show(teacherLoginView); return; }
-    if (!json.success) throw new Error(json.error || "Could not update assessment");
+    if (!json.success) {
+      if (json.sltAuthenticated === false) {
+        lockSltControls("SLT PIN incorrect. Please try again.");
+        sltPinInput?.focus();
+        return;
+      }
+      throw new Error(json.error || "Could not update assessment");
+    }
     await loadPublicAssessmentStatus();
     await loadDashboard();
   } catch (error) {
@@ -641,6 +700,14 @@ document.getElementById("logoutBtn").addEventListener("click", logoutTeacher);
 document.getElementById("refreshDashboard").addEventListener("click", loadDashboard);
 dashboardTerm.addEventListener("change", renderDashboard);
 loginForm.addEventListener("submit", handleLogin);
+if (sltUnlockBtn) sltUnlockBtn.addEventListener("click", unlockSltControls);
+if (sltLockBtn) sltLockBtn.addEventListener("click", () => lockSltControls());
+if (sltPinInput) sltPinInput.addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    unlockSltControls();
+  }
+});
 
 renderYears();
 loadPublicAssessmentStatus();

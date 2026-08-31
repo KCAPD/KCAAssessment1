@@ -148,6 +148,18 @@
         </div>
         <p>Turn pupil access on or off. Switching an assessment off does not delete any results.</p>
       </div>
+      <div class="slt-unlock" id="sltUnlockPanel">
+        <div class="slt-unlock-copy">
+          <strong>SLT access</strong>
+          <span id="sltUnlockStatus">Enter the SLT PIN to enable assessment controls.</span>
+        </div>
+        <div class="slt-unlock-form">
+          <label class="sr-only" for="sltPinInput">SLT PIN</label>
+          <input id="sltPinInput" type="password" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="SLT PIN">
+          <button id="sltUnlockBtn" type="button">Unlock controls</button>
+          <button id="sltLockBtn" type="button" class="slt-lock-btn" hidden>Lock</button>
+        </div>
+      </div>
       <div id="assessmentManagementGrid" class="management-grid"></div>
     </section>
 
