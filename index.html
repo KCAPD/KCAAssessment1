@@ -44,20 +44,18 @@
     <div id="mtcApp" class="mtc-app">
       <div id="mtcSelect" class="mtc-screen active">
         <span class="mtc-kicker">Year 4 · KCA MTC Practice</span>
-        <h1>Select your name</h1>
-        <p class="mtc-lead">This prototype uses sample names. The live version will load the Year 4 pupil list securely from Google.</p>
-        <label class="mtc-label" for="mtcPupil">Your name</label>
-        <select id="mtcPupil" class="mtc-select">
-          <option value="">Choose your name…</option>
-          <option>Alex Morgan</option><option>Casey Patel</option><option>Jordan Smith</option><option>Sam Taylor</option>
-        </select>
+        <h1>Enter your PIN</h1>
+        <p class="mtc-lead">Enter your 5-digit MTC PIN to begin.</p>
+        <label class="mtc-label" for="mtcPin">Your PIN</label>
+        <input id="mtcPin" class="mtc-select" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="5" autocomplete="off" aria-describedby="mtcLoginMessage">
         <button id="mtcContinue" class="mtc-primary">Continue</button>
+        <p id="mtcLoginMessage" class="login-message" aria-live="polite"></p>
         <button id="mtcExit1" class="mtc-text-btn">← Back to Year 4 assessments</button>
       </div>
 
       <div id="mtcWelcome" class="mtc-screen">
         <span class="mtc-kicker">KCA MTC Practice</span>
-        <h1>Welcome, <span id="mtcPupilName"></span></h1>
+        <h1>Welcome</h1>
         <div class="mtc-instructions">
           <p>You will answer <strong>3 practice questions</strong> first.</p>
           <p>Then you will answer <strong>25 times tables questions</strong>.</p>
@@ -65,7 +63,7 @@
           <p>You can press <strong>Enter</strong> to submit an answer early. Once submitted, you cannot go back.</p>
         </div>
         <button id="mtcStartPractice" class="mtc-primary">Start practice</button>
-        <button id="mtcExit2" class="mtc-text-btn">← Choose a different name</button>
+        <button id="mtcExit2" class="mtc-text-btn">← Enter a different PIN</button>
       </div>
 
       <div id="mtcQuestion" class="mtc-screen mtc-question-screen">
@@ -93,7 +91,7 @@
         <span class="mtc-kicker">KCA MTC Practice</span>
         <h1>Thank you</h1>
         <p class="mtc-lead">You have finished the check.</p>
-        <div class="mtc-prototype-note">Prototype only — Phase 1 does not save or show a score yet.</div>
+        <div class="mtc-prototype-note">Your practice check has been saved.</div>
         <button id="mtcFinishExit" class="mtc-primary">Return to assessments</button>
       </div>
     </div>
@@ -203,6 +201,6 @@
   </section>
 </main>
 <footer>King's Cross Academy · Love Learning Together</footer>
-<script src="app-v0.14d.js"></script>
+<script src="app-v0.15.js"></script>
 </body>
 </html>
