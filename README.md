@@ -17,3 +17,6 @@ This is KCA practice software, not the official Department for Education MTC ser
 
 
 v0.14c: SLT PIN front-end cache fix. Uses a versioned JavaScript filename so GitHub Pages/browser cannot keep serving the previous app.js.
+
+
+v0.14d: pupil-side live-status refresh. Each year-group click now re-fetches the safe public assessment catalogue before rendering, so SLT ON/OFF changes are reflected immediately when pupils enter a year group.
