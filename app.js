@@ -58,9 +58,7 @@ const DATA = {
       ["Summer 2", "How can I become the person I aspire to be?"]
     ]
   },
-  forms: {
-    "6-Autumn 1": "https://docs.google.com/forms/d/e/1FAIpQLSchGMshv86yrDTVqOzHoRNx0nhR5ssNOdNy4jF8wHPwFedI3A/viewform?usp=share_link&ouid=102874721147473405086"
-  }
+  forms: {}
 };
 
 const TERM_CODES = {
@@ -87,12 +85,14 @@ const dashboardBody = document.getElementById("dashboardBody");
 const dashboardTerm = document.getElementById("dashboardTerm");
 const dashboardStatus = document.getElementById("dashboardStatus");
 const completionGrid = document.getElementById("completionGrid");
+const assessmentManagementGrid = document.getElementById("assessmentManagementGrid");
 const loginForm = document.getElementById("loginForm");
 const loginPassword = document.getElementById("loginPassword");
 const loginMessage = document.getElementById("loginMessage");
 const loginButton = document.getElementById("loginButton");
 
 let dashboardData = null;
+let publicAssessmentStatus = [];
 
 function show(view) {
   [yearsView, assessmentsView, mtcView, teacherLoginView, teacherView].forEach(v => v.classList.remove("active"));
@@ -113,6 +113,25 @@ function renderYears() {
   );
 }
 
+async function loadPublicAssessmentStatus() {
+  try {
+    const url = `${CONFIG.apiUrl}?action=publicAssessments&t=${Date.now()}`;
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const json = await response.json();
+    publicAssessmentStatus = json.success && Array.isArray(json.assessments) ? json.assessments : [];
+  } catch (error) {
+    console.error("Could not load assessment availability", error);
+    publicAssessmentStatus = [];
+  }
+}
+
+function publicAssessmentFor(year, term) {
+  return publicAssessmentStatus.find(item =>
+    Number(item.yearGroup) === Number(year) && String(item.period) === String(term)
+  ) || null;
+}
+
 function openYear(year) {
   document.getElementById("yearTitle").textContent = `Year ${year}`;
   document.getElementById("yearEyebrow").textContent = `Year ${year} · 2026–2027`;
@@ -126,8 +145,8 @@ function openYear(year) {
     </article>` : "";
 
   assessmentGrid.innerHTML = mtcCard + DATA.yearGroups[year].map(([term, question]) => {
-    const key = `${year}-${term}`;
-    const url = DATA.forms[key];
+    const availability = publicAssessmentFor(year, term);
+    const url = availability && availability.live ? availability.url : "";
     return `
       <article class="assessment-card">
         <span class="term">${term}</span>
@@ -305,26 +324,14 @@ function renderCompletion() {
 
     const pct = Number(item.percentage || 0);
     const classes = Object.entries(item.classes || {});
-    const completedPupils = classes.flatMap(([className, data]) =>
-      (data.pupils || []).filter(p => p.completed).map(p => ({...p, className}))
-    );
-    const missingPupils = classes.flatMap(([className, data]) =>
-      (data.pupils || []).filter(p => !p.completed).map(p => ({...p, className}))
-    );
-
     const classOptions = classes.map(([className]) => `<option value="${escapeHtml(className)}">${escapeHtml(className)}</option>`).join("");
-    const done = completedPupils.length ? completedPupils.map(p => `<span class="initial-chip done" title="${escapeHtml(p.className)}">${escapeHtml(p.initials)} ✓</span>`).join("") : `<span class="empty-list">None yet</span>`;
-    const missing = missingPupils.length ? missingPupils.map(p => `<span class="initial-chip missing" title="${escapeHtml(p.className)}">${escapeHtml(p.initials)}</span>`).join("") : `<span class="empty-list">Everyone has completed it ✓</span>`;
+    const remaining = Math.max(0, Number(item.expected || 0) - Number(item.completed || 0));
 
     return `<article class="completion-card" data-assessment="${escapeHtml(item.assessmentId)}">
       <div class="completion-card-top"><b>Year ${year}</b><span>${item.completed}/${item.expected} completed</span></div>
       <div class="completion-progress" aria-label="${pct}% complete"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></div>
       <strong class="completion-percent">${pct}%</strong>
-      <details class="completion-details">
-        <summary>View completion</summary>
-        <div class="completion-list"><b>Completed</b><div>${done}</div></div>
-        <div class="completion-list"><b>Not yet completed</b><div>${missing}</div></div>
-      </details>
+      <p class="completion-summary">${remaining === 0 ? "Everyone has completed this assessment ✓" : `${remaining} pupil${remaining === 1 ? "" : "s"} still to complete`}</p>
       <div class="report-tools">
         <b>Reports</b>
         <button class="report-btn" data-scope="year" data-assessment="${escapeHtml(item.assessmentId)}">Generate year-group pack</button>
@@ -337,6 +344,63 @@ function renderCompletion() {
   completionGrid.querySelectorAll(".report-btn").forEach(button => {
     button.addEventListener("click", () => generateReport(button));
   });
+}
+
+function renderAssessmentManagement() {
+  if (!assessmentManagementGrid) return;
+  const items = Array.isArray(dashboardData?.assessmentManagement) ? dashboardData.assessmentManagement : [];
+  const term = dashboardTerm.value;
+  const wantedCode = TERM_CODES[term];
+  const filtered = items
+    .filter(item => parseAssessmentId(item.assessmentId)?.termCode === wantedCode)
+    .sort((a, b) => Number(a.yearGroup) - Number(b.yearGroup));
+
+  assessmentManagementGrid.innerHTML = ["1", "2", "3", "4", "5", "6"].map(year => {
+    const item = filtered.find(row => String(row.yearGroup) === year);
+    if (!item) return `<article class="management-card unavailable"><div><b>Year ${year}</b><span>Not set up</span></div><p>No assessment configured for this half term.</p></article>`;
+
+    const live = Boolean(item.live);
+    const canOpen = Boolean(item.hasForm);
+    const disabled = !live && !canOpen;
+    return `<article class="management-card ${live ? "is-live" : "is-off"}" data-assessment="${escapeHtml(item.assessmentId)}">
+      <div class="management-card-top"><b>Year ${year}</b><span class="management-status ${live ? "live" : "off"}">${live ? "On" : "Off"}</span></div>
+      <p>${escapeHtml(item.period || term)}</p>
+      <button class="management-toggle" data-live="${live ? "true" : "false"}" ${disabled ? "disabled" : ""}>${disabled ? "Google Form not set up" : (live ? "Turn assessment off" : "Turn assessment on")}</button>
+      <div class="management-result" aria-live="polite"></div>
+    </article>`;
+  }).join("");
+
+  assessmentManagementGrid.querySelectorAll(".management-toggle").forEach(button => button.addEventListener("click", () => toggleAssessmentLive(button)));
+}
+
+async function toggleAssessmentLive(button) {
+  const session = getStoredSession();
+  if (!session) { show(teacherLoginView); return; }
+
+  const card = button.closest(".management-card");
+  const assessmentId = card?.dataset.assessment || "";
+  const currentlyLive = button.dataset.live === "true";
+  const result = card.querySelector(".management-result");
+  button.disabled = true;
+  result.textContent = currentlyLive ? "Closing assessment…" : "Opening assessment…";
+
+  try {
+    const response = await fetch(CONFIG.apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "setAssessmentLive", token: session.token, assessmentId, live: !currentlyLive }),
+      cache: "no-store"
+    });
+    const json = await response.json();
+    if (!json.authenticated) { clearSession(); show(teacherLoginView); return; }
+    if (!json.success) throw new Error(json.error || "Could not update assessment");
+    await loadPublicAssessmentStatus();
+    await loadDashboard();
+  } catch (error) {
+    console.error(error);
+    result.textContent = error.message || "Could not update assessment.";
+    button.disabled = false;
+  }
 }
 
 async function generateReport(button) {
@@ -387,6 +451,7 @@ async function generateReport(button) {
 
 function renderDashboard() {
   renderCompletion();
+  renderAssessmentManagement();
   const lookup = buildTermLookup(dashboardTerm.value);
   const subjects = collectSubjects(lookup);
 
@@ -578,3 +643,4 @@ dashboardTerm.addEventListener("change", renderDashboard);
 loginForm.addEventListener("submit", handleLogin);
 
 renderYears();
+loadPublicAssessmentStatus();
