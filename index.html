@@ -172,6 +172,44 @@
       <div id="completionGrid" class="completion-grid"></div>
     </section>
 
+    <section class="completion-section" aria-labelledby="mtcReportsHeading">
+      <div class="completion-heading-row">
+        <div>
+          <span class="eyebrow">Year 4 · MTC</span>
+          <h2 id="mtcReportsHeading">MTC class reports</h2>
+        </div>
+        <p>Create a protected Google report using the latest MTC data.</p>
+      </div>
+
+      <article class="completion-card" id="mtcReportCard">
+        <div class="completion-card-top">
+          <b>Generate class report</b>
+          <span>Google Drive</span>
+        </div>
+
+        <p class="completion-summary">Choose a Year 4 class. The report contains the class analysis followed by one page for each pupil.</p>
+
+        <div class="report-tools">
+          <div class="class-report-row">
+            <label class="sr-only" for="mtcReportClass">Choose Year 4 class</label>
+            <select id="mtcReportClass" class="class-report-select" aria-label="Choose Year 4 class">
+              <option value="">Loading Year 4 classes…</option>
+            </select>
+            <button id="generateMtcReport" class="report-btn secondary" type="button">Generate MTC report</button>
+          </div>
+
+          <div id="mtcReportProgress" hidden aria-live="polite">
+            <p><strong>Creating MTC report…</strong> Please wait while the latest assessment data is analysed.</p>
+            <div class="completion-progress" aria-label="Report generation in progress">
+              <i style="width:68%"></i>
+            </div>
+          </div>
+
+          <div id="mtcReportResult" class="report-result" aria-live="polite"></div>
+        </div>
+      </article>
+    </section>
+
     <div class="rag-key dashboard-key" aria-label="Dashboard RAG thresholds">
       <span><i class="dot expected"></i><b>Expected</b> 80%+ Secure</span>
       <span><i class="dot developing"></i><b>Developing</b> 60–79% Secure</span>
@@ -201,6 +239,6 @@
   </section>
 </main>
 <footer>King's Cross Academy · Love Learning Together</footer>
-<script src="app-v0.16.js"></script>
+<script src="app-v0.17.js"></script>
 </body>
 </html>
